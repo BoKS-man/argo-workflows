@@ -1,0 +1,125 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: sample-dag-
+spec:
+  entrypoint: sample-dag
+  templates:
+  - name: sample-dag
+    dag:
+      tasks:
+      - name: model1-runner 
+        template: model1
+        arguments:
+          artifacts: 
+            - name: model1
+              s3:
+                bucket: my-bucket
+                key: run.py
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+            - name: model1-input1
+              s3:
+                bucket: my-bucket
+                key: in.txt
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+      - name: model2-runner
+        dependencies: [model1-runner]
+        template: model2
+        arguments:
+          artifacts: 
+            - name: model2
+              s3:
+                bucket: my-bucket
+                key: run.py
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+            - name: model2-input1
+              s3:
+                bucket: my-bucket
+                key: out.txt
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+  - name: model1
+    container:
+      image: python:3.8-slim 
+      #magePullPolicy: Never
+      command: [sh, -c]
+      args: ["python /run.py --input=/in.txt --output=/out.txt"]
+    inputs:
+      artifacts:
+      - name: model1
+        path: /run.py
+      - name: model1-input1
+        path: /in.txt
+    outputs:
+      artifacts:
+      - name: model1-output1 
+        path: /out.txt
+        archive:
+          none: {}
+        s3:
+          bucket: my-bucket
+          key: out.txt
+          endpoint: 172.18.0.2:9000
+          insecure: true
+          accessKeySecret:
+            name: argo-artifacts
+            key: accesskey
+          secretKeySecret:
+            name: argo-artifacts
+            key: secretkey
+  - name: model2
+    container:
+      image: python:3.8-slim 
+      #magePullPolicy: Never
+      command: [sh, -c]
+      args: ["python /run.py --input=/out.txt --output=/out2.txt"]
+    inputs:
+      artifacts:
+      - name: model2
+        path: /run.py
+      - name: model2-input1
+        path: /out.txt
+    outputs:
+      artifacts:
+      - name: model2-output1 
+        path: /out2.txt
+        archive:
+          none: {}
+        s3:
+          bucket: my-bucket
+          key: out2.txt
+          endpoint: 172.18.0.2:9000
+          insecure: true
+          accessKeySecret:
+            name: argo-artifacts
+            key: accesskey
+          secretKeySecret:
+            name: argo-artifacts
+            key: secretkey

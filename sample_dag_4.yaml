@@ -1,0 +1,157 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: sample-dag-
+spec:
+  entrypoint: sample-dag
+  templates:
+  - name: sample-dag
+    dag:
+      tasks:
+      - name: model1-runner 
+        template: model1
+        arguments:
+          artifacts: 
+            - name: model1
+              s3:
+                bucket: mock
+                key: standalone_mock_3.py
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+            - name: model1-input1
+              s3:
+                bucket: mock
+                key: in.pt
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+            - name: model1-weights1
+              s3:
+                bucket: mock
+                key: mock_3.pt
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+      - name: model2-runner
+        dependencies: [model1-runner]
+        template: model2
+        arguments:
+          artifacts: 
+            - name: model2
+              s3:
+                bucket: mock
+                key: standalone_mock_7.py
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+            - name: model2-input1
+              s3:
+                bucket: mock
+                key: out1.pt
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+            - name: model2-weights1
+              s3:
+                bucket: mock
+                key: mock_7.pt
+                endpoint: 172.18.0.2:9000
+                insecure: true
+                accessKeySecret:
+                  name: argo-artifacts
+                  key: accesskey
+                secretKeySecret:
+                  name: argo-artifacts
+                  key: secretkey
+  - name: model1
+    container:
+      image: pytorch/pytorch:1.9.0-cuda10.2-cudnn7-runtime
+      #magePullPolicy: Never
+      command: [sh, -c]
+      args: ["python /standalone_mock_3.py --input_path=/in.pt --output_path=/out1.pt --weights_path=/mock_3.pt"]
+    inputs:
+      artifacts:
+      - name: model1
+        path: /standalone_mock_3.py
+      - name: model1-input1
+        path: /in.pt
+      - name: model1-weights1
+        path: /mock_3.pt
+    outputs:
+      artifacts:
+      - name: model1-output1 
+        path: /out1.pt
+        archive:
+          none: {}
+        s3:
+          bucket: mock
+          key: out1.pt
+          archive:
+            none: {}
+          endpoint: 172.18.0.2:9000
+          insecure: true
+          accessKeySecret:
+            name: argo-artifacts
+            key: accesskey
+          secretKeySecret:
+            name: argo-artifacts
+            key: secretkey
+  - name: model2
+    container:
+      image: pytorch/pytorch:1.9.0-cuda10.2-cudnn7-runtime
+      #magePullPolicy: Never
+      command: [sh, -c]
+      args: ["python /standalone_mock_7.py --input_path=/out1.pt --output_path=/out2.pt --weights_path=/mock_7.pt"]
+    inputs:
+      artifacts:
+      - name: model2
+        path: /standalone_mock_7.py
+      - name: model2-input1
+        path: /out1.pt
+      - name: model2-weights1
+        path: /mock_7.pt
+    outputs:
+      artifacts:
+      - name: model2-output1 
+        path: /out2.pt
+        archive:
+          none: {}
+        s3:
+          bucket: mock
+          key: out2.pt
+          archive:
+            none: {}
+          endpoint: 172.18.0.2:9000
+          insecure: true
+          accessKeySecret:
+            name: argo-artifacts
+            key: accesskey
+          secretKeySecret:
+            name: argo-artifacts
+            key: secretkey

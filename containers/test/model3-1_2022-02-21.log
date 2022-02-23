@@ -1,0 +1,15 @@
+18:53:08.011147: The mock model is initialized. Weights size is 38.169960021972656 Mb
+18:53:08.011749: Incoming tensor mean is 1.0
+18:53:08.019023: Resulted tensor mean is 2.0
+18:53:42.964581: The mock model is initialized. Weights size is 38.17 Mb
+18:53:42.965946: Incoming tensor mean is 1.0
+18:53:42.966724: Resulted tensor mean is 2.0
+18:53:57.455803: The mock model is initialized. Weights size is 38.17 Mb
+18:53:57.456276: Incoming tensor mean is 1.0
+18:53:57.456468: Resulted tensor mean is 2.0
+18:55:39.582873: The mock model is initialized. Weights size is 38.17 Mb
+18:55:39.583627: Incoming tensor mean is 1.0
+18:55:39.584000: Resulted tensor mean is 2.0
+18:57:18.853707: The mock model is initialized (Size: 3, Add: 1). Weights size is 38.17 Mb
+18:57:18.855033: Incoming tensor mean is 1.0
+18:57:18.856301: Resulted tensor mean is 2.0
