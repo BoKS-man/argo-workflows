@@ -16,7 +16,7 @@ spec:
               s3:
                 bucket: my-bucket
                 key: run.py
-                endpoint: 172.18.0.2:9000
+                endpoint: 172.20.0.3:9000
                 insecure: true
                 accessKeySecret:
                   name: argo-artifacts
@@ -28,7 +28,7 @@ spec:
               s3:
                 bucket: my-bucket
                 key: in.txt
-                endpoint: 172.18.0.2:9000
+                endpoint: 172.20.0.3:9000
                 insecure: true
                 accessKeySecret:
                   name: argo-artifacts
@@ -57,7 +57,7 @@ spec:
         s3:
           bucket: my-bucket
           key: out.txt
-          endpoint: 172.18.0.2:9000
+          endpoint: 172.20.0.3:9000
           insecure: true
           accessKeySecret:
             name: argo-artifacts

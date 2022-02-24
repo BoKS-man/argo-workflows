@@ -16,7 +16,7 @@ spec:
               s3:
                 bucket: mock
                 key: standalone_mock_3.py
-                endpoint: 172.18.0.2:9000
+                endpoint: 172.20.0.3:9000
                 insecure: true
                 accessKeySecret:
                   name: argo-artifacts
@@ -28,7 +28,7 @@ spec:
               s3:
                 bucket: mock
                 key: in.pt
-                endpoint: 172.18.0.2:9000
+                endpoint: 172.20.0.3:9000
                 insecure: true
                 accessKeySecret:
                   name: argo-artifacts
@@ -40,7 +40,7 @@ spec:
               s3:
                 bucket: mock
                 key: mock_3.pt
-                endpoint: 172.18.0.2:9000
+                endpoint: 172.20.0.3:9000
                 insecure: true
                 accessKeySecret:
                   name: argo-artifacts
@@ -57,7 +57,7 @@ spec:
               s3:
                 bucket: mock
                 key: standalone_mock_7.py
-                endpoint: 172.18.0.2:9000
+                endpoint: 172.20.0.3:9000
                 insecure: true
                 accessKeySecret:
                   name: argo-artifacts
@@ -69,7 +69,7 @@ spec:
               s3:
                 bucket: mock
                 key: out1.pt
-                endpoint: 172.18.0.2:9000
+                endpoint: 172.20.0.3:9000
                 insecure: true
                 accessKeySecret:
                   name: argo-artifacts
@@ -81,7 +81,7 @@ spec:
               s3:
                 bucket: mock
                 key: mock_7.pt
-                endpoint: 172.18.0.2:9000
+                endpoint: 172.20.0.3:9000
                 insecure: true
                 accessKeySecret:
                   name: argo-artifacts
@@ -112,9 +112,7 @@ spec:
         s3:
           bucket: mock
           key: out1.pt
-          archive:
-            none: {}
-          endpoint: 172.18.0.2:9000
+          endpoint: 172.20.0.3:9000
           insecure: true
           accessKeySecret:
             name: argo-artifacts
@@ -145,9 +143,7 @@ spec:
         s3:
           bucket: mock
           key: out2.pt
-          archive:
-            none: {}
-          endpoint: 172.18.0.2:9000
+          endpoint: 172.20.0.3:9000
           insecure: true
           accessKeySecret:
             name: argo-artifacts
