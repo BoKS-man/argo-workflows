@@ -1,0 +1,147 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: test
+spec:
+  entrypoint: test
+  arguments:
+    parameters:
+    - name: batch_id
+  templates:
+    - name: test
+      steps:
+      - - name: auto-seg
+          template: model-request
+          arguments:
+            parameters:
+            - name: url
+              value: "http://10.130.0.39:5001/process"
+            - name: batch_id
+              value: "{{workflow.parameters.batch_id}}"
+      - - name: auto-grz
+          template: model-request
+          arguments:
+            parameters:
+            - name: url
+              value: "http://10.130.0.39:5010/process"
+            - name: batch_id
+              value: "{{workflow.parameters.batch_id}}"
+      - - name: autoteka-token
+          template: autoteka-request-token
+          arguments:
+            parameters:
+            - name: client_id
+              value: x4fPcbrR5MfZlPWKmTAM
+            - name: client_secret
+              value: UBIIRFFwfM4ZZo0i7FCMv8y5Q7T4y_1oIEmvaKVP
+      - - name: autoteka-data
+          template: autoteka-request-data
+          arguments:
+            parameters:
+            - name: token
+              value: "{{=jsonpath(steps.autoteka-token.outputs.result, '$.access_token')}}"
+            - name: reg_number
+              value: "{{=jsonpath(steps.auto-grz.outputs.result, '$.data')}}"
+      - - name: autoteka-save
+          template: autoteka-save-data
+          arguments:
+            parameters:
+            - name: autoteka_data
+              value: "{{steps.autoteka-data.outputs.result}}"
+            - name: batch_id
+              value: "{{workflow.parameters.batch_id}}"
+      - - name: thelaststep
+          template: output
+          arguments:
+            parameters:
+            - name: step1_data
+              value: "{{=jsonpath(tasks.auto-seg.outputs.result, '$.data')}}"
+            - name: batch_id
+              value: "{{workflow.parameters.batch_id}}"
+    - name: model-request
+      retryStrategy:
+        limit: "10"
+      inputs:
+        parameters:
+          - name: url
+          - name: batch_id
+      http:
+        timeoutSeconds: 30
+        url: "{{inputs.parameters.url}}"
+        method: POST
+        headers:
+          - name: "Content-Type"
+            value: "application/json"
+        #successCondition: "response.statusCode == 200"
+        body: "{\"input\":\"images\",\"output\":\"results\",\"batch_id\":\"{{inputs.parameters.batch_id}}\"}"
+    - name: autoteka-request-token
+      inputs:
+        parameters:
+          - name: client_id
+          - name: client_secret
+      http:
+        timeoutSeconds: 60
+        url: "https://pro.autoteka.ru/token/"
+        method: POST
+        headers:
+          - name: "Content-Type"
+            value: "application/x-www-form-urlencoded"
+        successCondition: "response.statusCode == 200"
+        body: grant_type=client_credentials&client_id={{inputs.parameters.client_id}}&client_secret={{inputs.parameters.client_secret}}
+    - name: autoteka-request-data
+      inputs:
+        parameters:
+          - name: token
+          - name: reg_number
+      http:
+        timeoutSeconds: 60
+        url: "https://pro.autoteka.ru/autoteka/v1/sync/create-by-regnumber"
+        method: POST
+        headers:
+          - name: "Authorization"
+            value: "Bearer {{inputs.parameters.token}}"
+          - name: "Content-Type"
+            value: "application/json"
+        successCondition: "response.statusCode == 200"
+        body: "{\"regNumber\":\"{{inputs.parameters.reg_number}}\"}"
+    - name: autoteka-save-data
+      inputs:
+        parameters:
+        - name: autoteka_data
+        - name: batch_id
+      container:
+        image: python:3.8-slim
+        command: [sh, -c]
+        args: ["echo '{{inputs.parameters.autoteka_data}}' >> /tmp/{{inputs.parameters.batch_id}}_autoteka_data.json"]
+      outputs:
+        artifacts:
+        - name: autoteka-data
+          path: "/tmp/{{inputs.parameters.batch_id}}_autoteka_data.json"
+          mode: 0777
+          archive:
+            none: {}
+          s3:
+            bucket: results
+            key: "{{inputs.parameters.batch_id}}_autoteka_data.json"
+            endpoint: 10.130.0.39:9000
+            insecure: true
+            accessKeySecret:
+              name: my-minio-cred
+              key: accesskey
+            secretKeySecret:
+              name: my-minio-cred
+              key: secretkey
+    - name: output
+      inputs:
+        parameters:
+          - name: step1_data
+          - name: batch_id
+      http:
+        timeoutSeconds: 60
+        url: "http://10.130.0.39:12001/result"
+        method: POST
+        headers:
+          - name: "Content-Type"
+            value: "application/json"
+        successCondition: "response.statusCode == 200"
+        body: "{\"file\":\"{{inputs.parameters.step1_data}}\", \"batch_id\":\"{{inputs.parameters.batch_id}}\"}"

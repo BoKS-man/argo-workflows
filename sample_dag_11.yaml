@@ -1,0 +1,143 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: test
+spec:
+  entrypoint: test
+  arguments:
+    parameters:
+    - name: batch_id
+  templates:
+    - name: test
+      dag:
+        tasks:
+        - name: step1
+          template: auto-seg
+          arguments:
+            parameters:
+            - name: batch_id
+              value: "{{workflow.parameters.batch_id}}"
+        - name: step2
+          dependencies:
+          - step1
+          template: autoteka-request-token
+          arguments:
+            parameters:
+            - name: client_id
+              value: x4fPcbrR5MfZlPWKmTAM
+            - name: client_secret
+              value: UBIIRFFwfM4ZZo0i7FCMv8y5Q7T4y_1oIEmvaKVP
+        - name: step3
+          dependencies:
+          - step2
+          template: autoteka-request-data
+          arguments:
+            parameters:
+            - name: token
+              value: "{{=jsonpath(tasks.step2.outputs.result, '$.access_token')}}"
+            - name: reg_number
+              value: "Н802МО799"
+        - name: step4
+          dependencies:
+          - step3
+          template: autoteka-save-data
+          arguments:
+            parameters:
+            - name: autoteka_data
+              value: "{{tasks.step3.outputs.result}}"
+            - name: batch_id
+              value: "{{workflow.parameters.batch_id}}"
+        - name: thelaststep
+          dependencies:
+          - step4
+          template: output
+          arguments:
+            parameters:
+            - name: step1_data
+              value: "{{=jsonpath(tasks.step1.outputs.result, '$.data')}}"
+            - name: callback
+              value: callback-default
+    - name: auto-seg
+      inputs:
+        parameters:
+          - name: batch_id
+      http:
+        timeoutSeconds: 60
+        url: "http://10.130.0.39:5001/process"
+        method: POST
+        headers:
+          - name: "Content-Type"
+            value: "application/json"
+        successCondition: "response.statusCode == 200"
+        body: "{\"input\":\"images\",\"output\":\"results\",\"batch_id\":\"{{inputs.parameters.batch_id}}\"}"
+    - name: autoteka-request-token
+      inputs:
+        parameters:
+          - name: client_id
+          - name: client_secret
+      http:
+        timeoutSeconds: 60
+        url: "https://pro.autoteka.ru/token/"
+        method: POST
+        headers:
+          - name: "Content-Type"
+            value: "application/x-www-form-urlencoded"
+        successCondition: "response.statusCode == 200"
+        body: grant_type=client_credentials&client_id={{inputs.parameters.client_id}}&client_secret={{inputs.parameters.client_secret}}
+    - name: autoteka-request-data
+      inputs:
+        parameters:
+          - name: token
+          - name: reg_number
+      http:
+        timeoutSeconds: 60
+        url: "https://pro.autoteka.ru/autoteka/v1/sync/create-by-regnumber"
+        method: POST
+        headers:
+          - name: "Authorization"
+            value: "Bearer {{inputs.parameters.token}}"
+          - name: "Content-Type"
+            value: "application/json"
+        successCondition: "response.statusCode == 200"
+        body: "{\"regNumber\":\"{{inputs.parameters.reg_number}}\"}"
+    - name: autoteka-save-data
+      inputs:
+        parameters:
+        - name: autoteka_data
+        - name: batch_id
+      container:
+        image: python:3.8-slim
+        command: [sh, -c]
+        args: ["echo '{{inputs.parameters.autoteka_data}}' >> /tmp/{{inputs.parameters.batch_id}}_autoteka_data.json"]
+      outputs:
+        artifacts:
+        - name: autoteka-data
+          path: "/tmp/{{inputs.parameters.batch_id}}_autoteka_data.json"
+          mode: 0777
+          archive:
+            none: {}
+          s3:
+            bucket: results
+            key: "{{inputs.parameters.batch_id}}_autoteka_data.json"
+            endpoint: 10.130.0.39:9000
+            insecure: true
+            accessKeySecret:
+              name: my-minio-cred
+              key: accesskey
+            secretKeySecret:
+              name: my-minio-cred
+              key: secretkey
+    - name: output
+      inputs:
+        parameters:
+          - name: step1_data
+          - name: callback
+      http:
+        timeoutSeconds: 60
+        url: "http://10.130.0.39:12001/result"
+        method: POST
+        headers:
+          - name: "Content-Type"
+            value: "application/json"
+        successCondition: "response.statusCode == 200"
+        body: "{\"file\":\"{{inputs.parameters.step1_data}}\", \"callback\":\"{{inputs.parameters.callback}}\"}"
