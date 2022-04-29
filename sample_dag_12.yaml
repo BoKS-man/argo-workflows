@@ -72,7 +72,7 @@ spec:
         headers:
           - name: "Content-Type"
             value: "application/json"
-        #successCondition: "response.statusCode == 200"
+        successCondition: "response.statusCode == 200"
         body: "{\"input\":\"images\",\"output\":\"results\",\"batch_id\":\"{{inputs.parameters.batch_id}}\"}"
     - name: autoteka-request-token
       inputs:
@@ -80,7 +80,7 @@ spec:
           - name: client_id
           - name: client_secret
       http:
-        timeoutSeconds: 60
+        timeoutSeconds: 30
         url: "https://pro.autoteka.ru/token/"
         method: POST
         headers:
@@ -94,7 +94,7 @@ spec:
           - name: token
           - name: reg_number
       http:
-        timeoutSeconds: 60
+        timeoutSeconds: 30
         url: "https://pro.autoteka.ru/autoteka/v1/sync/create-by-regnumber"
         method: POST
         headers:
@@ -137,7 +137,7 @@ spec:
           - name: step1_data
           - name: batch_id
       http:
-        timeoutSeconds: 60
+        timeoutSeconds: 30
         url: "http://10.130.0.39:12001/result"
         method: POST
         headers:

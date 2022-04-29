@@ -1,0 +1,50 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: test
+spec:
+  entrypoint: test
+  templates:
+    - name: test
+      dag:
+        tasks:
+        - name: step1
+          template: autoteka-request-token
+          arguments:
+            parameters:
+            - name: client_id
+              value: x4fPcbrR5MfZlPWKmTAM
+            - name: client_secret
+              value: UBIIRFFwfM4ZZo0i7FCMv8y5Q7T4y_1oIEmvaKVP
+        - name: step2
+          dependencies:
+          - step1
+          template: echo
+          arguments:
+            parameters:
+            - name: http_out
+              value: "{{tasks.step1.outputs.result}}"
+    - name: autoteka-request-token
+      inputs:
+        parameters:
+          - name: client_id
+          - name: client_secret
+      http:
+        timeoutSeconds: 60
+        url: "https://pro.autoteka.ru/token/"
+        method: POST
+        headers:
+          - name: "Content-Type"
+            value: "application/x-www-form-urlencoded"
+        successCondition: "response.statusCode == 200"
+        body: grant_type=client_credentials&client_id={{inputs.parameters.client_id}}&client_secret={{inputs.parameters.client_secret}}
+    - name: echo
+      inputs:
+        parameters:
+          - name: http_out
+      container:
+        image: 'python:3.8-slim'
+        command: [sh, -c]
+        args:
+          - echo
+          - '{{inputs.parameters.http_out}}'
